@@ -69,6 +69,7 @@ class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
         self.geometry("640x360")
+        self.title("Media Converter")
         self.grid_rowconfigure(0, weight=1)  # configure grid system
         self.grid_columnconfigure(0, weight=1)
 
