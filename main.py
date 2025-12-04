@@ -2,15 +2,21 @@ import customtkinter
 from customtkinter import filedialog
 
 from PIL import Image
+import ffmpeg
 
-imgOptions = [".avif", ".avifs", ".bmp", ".dds", ".ico", ".jpe", ".jpeg", ".jpg", ".png", ".webp"]
+imgSaveOptions = (".avif", ".bmp", ".dds", ".gif", ".ico", ".jpeg", ".png", ".webp")
 
-exts = ".avif .avifs .blp .bmp .bufr .dds .dib .eps .ps .grib .h5 .hdf .icns .ico .im .jfif .jpe .jpeg " \
+imgOpenOptions = ".avif .avifs .blp .bmp .bufr .dds .dib .eps .ps .grib .h5 .hdf .icns .ico .im .jfif .jpe .jpeg " \
 ".jpg .j2c .j2k .jp2 .jpc .jpf .jpx .msp .pcx .apng .png .pbm .pfm .pgm .pnm .ppm .qoi .bw .rgb .rgba " \
 ".sgi .ras .icb .tga .vda .vst .tif .tiff .webp .emf .wmf .xbm"
 
+
+vidSaveOptions = (".gif", ".mp4", ".mkv", ".mov", ".avi", ".wmv", ".ogg", "--Audio Files--", ".mp2")
+
+selectedVideo = ""
+
 selectedImage = None
-OutputFolder =""
+OutputFolder = ""
 
 class MyFrame(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
@@ -37,19 +43,27 @@ class MyFrame(customtkinter.CTkFrame):
         self.convertButton = customtkinter.CTkButton(self, text="Please select a file format", command=self.convertFile)
         self.convertButton.grid(row=6, column=0, padx=20)
 
+        self.statusLabel = customtkinter.CTkLabel(self, text="")
+        self.statusLabel.grid(row=7, column=0, padx=20)
+
     def selectFile(self):
-        global selectedImage, imgOptions, exts
+        global selectedImage, selectedVideo, imgSaveOptions, imgOpenOptions, vidSaveOptions
         
-        supportedFiles = (("Image files", exts),)
+        selectedVideo = None
+        selectedImage = None
+
+        supportedFiles = (("Image files", imgOpenOptions), ("Video files", vidSaveOptions))
         filename = filedialog.askopenfilename(filetypes=supportedFiles)
+
+        if filename.endswith(vidSaveOptions):
+            selectedVideo = filename
+            self.convertOptions.configure(values=vidSaveOptions)
         
-        selectedImage = Image.open(filename)
+        else:
+            selectedImage = Image.open(filename)
+            self.convertOptions.configure(values=imgSaveOptions)
         
         self.selectedLabel.configure(text=filename)
-        
-        self.convertOptions.configure(values=imgOptions)
-        
-        self.convertOptions.set(imgOptions[0])
         self.convertButton.configure(text="Convert")
 
     def selectOutputFolder(self):
@@ -58,10 +72,20 @@ class MyFrame(customtkinter.CTkFrame):
         self.selectedFolderLabel.configure(text=OutputFolder)
     
     def convertFile(self):
-        global selectedImage, OutputFolder
-        if self.convertOptions.get() == "Please select a source file":
+        global selectedImage, selectedVideo, OutputFolder
+        if self.convertOptions.get() == "Please select a source file" or self.convertOptions.get() == "--Audio Files--":
             return
-        selectedImage.save(OutputFolder + self.nameEntry.get() + self.convertOptions.get(), self.convertOptions.get().removeprefix("."))
+
+        #Why the fuck does this not work??
+        #It seems the configure functions get called AFTER the save and ffmpeg functions, for some fucking reason
+        #self.statusLabel.configure(text="Working")
+        if not selectedImage == None:
+            selectedImage.save(OutputFolder + self.nameEntry.get() + self.convertOptions.get(), self.convertOptions.get().removeprefix("."))
+            self.statusLabel.configure(text="Done!")
+        
+        elif not selectedVideo == None:
+            ffmpeg.input(selectedVideo).output(OutputFolder + self.nameEntry.get() + self.convertOptions.get()).run()
+            self.statusLabel.configure(text="Done!")
 
 
 
